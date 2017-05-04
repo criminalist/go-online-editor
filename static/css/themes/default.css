@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, b3log.org
+ * Copyright (c) 2014-2017, b3log.org & hacpai.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,19 @@
  * limitations under the License.
  */
 
+/*
+ * themes for default.
+ *
+ * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
+ * @version 0.1.0.0, Dec 6, 2015
+ */
+
 .side {
     background-color: #FFF;
-    border-right: 1px solid #919191;
 }
 
 .side-right {
     background-color: #FFF;
-    border-left: 1px solid #919191;
 }
 
 .footer {
@@ -34,11 +39,13 @@
     background-color: #FFF;
 }
 
-.font-ico {
+.font-ico,
+.ico-restore {
     color: #666;
 }
 
 .font-ico:hover,
+.ico-restore:hover,
 .frame li:hover .font-ico {
     color: #333;
 }
@@ -122,10 +129,27 @@
     background-color: #F0F0F0;
 }
 
-.bottom-window-group {
-    border-top: 1px solid #919191;
-}
-
 #dialogPreference .preference {
     border: 1px solid #A4A4A4;
+}
+/* start layout resize */
+.ui-layout-resizer,
+.ui-layout-resizer-dragging { 
+    background: #bbb;
+}
+.ui-layout-resizer-open-hover ,	/* hover-color to 'resize' */
+.ui-layout-resizer-dragging {	/* resizer beging 'dragging' */
+    background: #919191;
+}
+.ui-layout-resizer-west-closed {
+    border-right: 1px solid #919191;
+}
+.ui-layout-resizer-south-closed {
+    border-top: 1px solid #919191;
+}
+.ui-layout-resizer-east-closed {
+    border-left: 1px solid #919191;
+}
+.ui-layout-resizer-closed-hover	{ /* hover-color to 'slide open' */
+    background: #919191;
 }

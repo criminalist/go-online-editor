@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, b3log.org
+ * Copyright (c) 2014-2017, b3log.org & hacpai.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/*
+ * @file wide.js
+ *
+ * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
+ * @author <a href="http://88250.b3log.org">Liang Ding</a>
+ * @version 1.0.0.1, Dec 8, 2015
+ */
 var wide = {
     curNode: undefined,
     curEditor: undefined,
@@ -34,10 +41,12 @@ var wide = {
             url: config.context + '/outline',
             data: JSON.stringify(request),
             dataType: "json",
-            success: function (data) {
-                if (!data.succ) {
+            success: function (result) {
+                if (!result.succ) {
                     return;
                 }
+
+                var data = result.data;
 
                 var outlineHTML = '<ul class="list">',
                         decls = ['constDecls', 'varDecls', 'funcDecls',
@@ -115,8 +124,8 @@ var wide = {
                     url: config.context + '/file/remove',
                     data: JSON.stringify(request),
                     dataType: "json",
-                    success: function (data) {
-                        if (!data.succ) {
+                    success: function (result) {
+                        if (!result.succ) {
                             $("#dialogRemoveConfirm").dialog("close");
                             bottomGroup.tabs.setCurrent("notification");
                             windows.flowBottom();
@@ -153,16 +162,22 @@ var wide = {
                     url: config.context + '/file/new',
                     data: JSON.stringify(request),
                     dataType: "json",
-                    success: function (data) {
-                        if (!data.succ) {
+                    success: function (result) {
+                        if (!result.succ) {
                             $("#dialogNewFilePrompt").dialog("close");
                             bottomGroup.tabs.setCurrent("notification");
                             windows.flowBottom();
                             $(".bottom-window-group .notification").focus();
                             return false;
                         }
-                        
+
                         $("#dialogNewFilePrompt").dialog("close");
+
+                        setTimeout(function () { // Delay, waiting the file change notified and then open it
+                            var tId = tree.getTIdByPath(request.path);
+                            tree.openFile(tree.fileTree.getNodeByTId(tId));
+                            tree.fileTree.selectNode(wide.curNode);
+                        }, 100);
                     }
                 });
             }
@@ -191,8 +206,8 @@ var wide = {
                     url: config.context + '/file/new',
                     data: JSON.stringify(request),
                     dataType: "json",
-                    success: function (data) {
-                        if (!data.succ) {
+                    success: function (result) {
+                        if (!result.succ) {
                             $("#dialogNewDirPrompt").dialog("close");
                             bottomGroup.tabs.setCurrent("notification");
                             windows.flowBottom();
@@ -252,14 +267,16 @@ var wide = {
                         url: config.context + '/file/find/name',
                         data: JSON.stringify(request),
                         dataType: "json",
-                        success: function (data) {
-                            if (!data.succ) {
+                        success: function (result) {
+                            if (!result.succ) {
                                 return;
                             }
 
+                            var data = result.data;
+
                             var goFileHTML = '';
-                            for (var i = 0, max = data.founds.length; i < max; i++) {
-                                var path = data.founds[i].path,
+                            for (var i = 0, max = data.length; i < max; i++) {
+                                var path = data[i].path,
                                         name = path.substr(path.lastIndexOf("/") + 1),
                                         icoSkin = wide.getClassBySuffix(name.split(".")[1]);
                                 if (i === 0) {
@@ -346,34 +363,11 @@ var wide = {
                     url: config.context + '/git/clone',
                     data: JSON.stringify(request),
                     dataType: "json",
-                    success: function (data) {
-
+                    success: function (result) {
                     }
                 });
             }
         });
-    },
-    _initLayout: function () {
-        var mainH = $(window).height() - $(".menu").height() - $(".footer").height() - 2,
-                bottomH = Math.floor(mainH * 0.3);
-        // 减小初始化界面抖动
-        $(".content").height(mainH).css("position", "relative");
-        $(".side .tabs-panel").height(mainH - 20);
-
-        var $bottomGroup = $(".bottom-window-group");
-        if ($bottomGroup.hasClass("bottom-window-group-max")) {
-            $(".bottom-window-group > .tabs-panel > div > div").height(mainH - $bottomGroup.children(".tabs").height());
-        } else {
-            $(".bottom-window-group > .tabs-panel > div > div").height(bottomH - $bottomGroup.children(".tabs").height());
-        }
-
-        if ($(".side-right").hasClass("side-right-max")) {
-            $(".side-right > .tabs-panel > div").height(mainH - $bottomGroup.children(".tabs").height());
-        } else {
-            $(".side-right > .tabs-panel > div").height($('.side-right').height() - $bottomGroup.children(".tabs").height());
-        }
-
-        $("#startPage").height($('.side-right').height() - $bottomGroup.children(".tabs").height() - 100);
     },
     _initWS: function () {
         var outputWS = new ReconnectingWebSocket(config.channel + '/output/ws?sid=' + config.wideSessionId);
@@ -470,7 +464,7 @@ var wide = {
                     } else {
                         if ('cross-build' === data.cmd) {
                             var request = newWideRequest(),
-                                    isSucc = false;
+                                    path = null;
                             request.path = data.executable;
                             request.name = data.name;
 
@@ -480,16 +474,20 @@ var wide = {
                                 url: config.context + '/file/zip/new',
                                 data: JSON.stringify(request),
                                 dataType: "json",
-                                success: function (data) {
-                                    if (!data.succ) {
-                                        $("#dialogAlert").dialog("open", data.msg);
+                                success: function (result) {
+                                    if (!result.succ) {
+                                        $("#dialogAlert").dialog("open", result.msg);
 
                                         return false;
                                     }
 
-                                    window.open(config.context + '/file/zip?path=' + data.path + ".zip");
+                                    path = result.data;
                                 }
                             });
+
+                            if (path) {
+                                window.open(config.context + '/file/zip?path=' + path + ".zip");
+                            }
                         }
                     }
 
@@ -541,17 +539,6 @@ var wide = {
         };
 
         this._initDialog();
-
-        this._initLayout();
-
-        $(window).resize(function () {
-            wide._initLayout();
-            var editorDatas = editors.data,
-                    height = $(".edit-panel").height() - $(".edit-panel .tabs").height();
-            for (var i = 0, ii = editorDatas.length; i < ii; i++) {
-                editorDatas[i].editor.setSize("100%", height);
-            }
-        });
     },
     _save: function (path, editor) {
         if (!path) {
@@ -567,7 +554,7 @@ var wide = {
             url: config.context + '/file/save',
             data: JSON.stringify(request),
             dataType: "json",
-            success: function (data) {
+            success: function (result) {
                 // reset the save state
                 editor.doc.markClean();
                 $(".edit-panel .tabs > div").each(function () {
@@ -603,10 +590,10 @@ var wide = {
                 url: config.context + '/build',
                 data: JSON.stringify(request),
                 dataType: "json",
-                beforeSend: function (data) {
+                beforeSend: function () {
                     bottomGroup.resetOutput();
                 },
-                success: function (data) {
+                success: function (result) {
                 }
             });
 
@@ -636,7 +623,7 @@ var wide = {
             url: config.context + '/stop',
             data: JSON.stringify(request),
             dataType: "json",
-            success: function (data) {
+            success: function (result) {
                 $("#buildRun").removeClass("ico-stop")
                         .addClass("ico-buildrun").attr("title", config.label.build_n_run);
             }
@@ -658,9 +645,9 @@ var wide = {
             url: config.context + '/go/fmt',
             data: JSON.stringify(request),
             dataType: "json",
-            success: function (data) {
-                if (data.succ) {
-                    editor.setValue(data.code);
+            success: function (result) {
+                if (result.succ) {
+                    editor.setValue(result.data.code);
                     editor.setCursor(cursor);
                     editor.scrollTo(null, scrollInfo.top);
 
@@ -691,9 +678,9 @@ var wide = {
                     url: config.context + '/go/fmt',
                     data: JSON.stringify(request),
                     dataType: "json",
-                    success: function (data) {
-                        if (data.succ) {
-                            formatted = data.code;
+                    success: function (result) {
+                        if (result.succ) {
+                            formatted = result.data.code;
                         }
                     }
                 });

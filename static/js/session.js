@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, b3log.org
+ * Copyright (c) 2014-2017, b3log.org & hacpai.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,28 @@
  * limitations under the License.
  */
 
+/*
+ * @file session.js
+ *
+ * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
+ * @version 1.1.0.1, Dec 8, 2015
+ */
 var session = {
     init: function () {
         this._initWS();
 
-        // save session content per 30 seconds
+        var getLayoutState = function (paneState) {
+            var state = 'normal';
+            if (paneState.isClosed) {
+                state = 'min';
+            } else if (paneState.size >= $('body').width()) {
+                state = 'max';
+            }
+
+            return state;
+        };
+
+        // save session content every 30 seconds
         setInterval(function () {
             var request = newWideRequest(),
                     filse = [],
@@ -39,12 +56,28 @@ var session = {
             request.fileTree = fileTree; // file tree expansion state
             request.files = filse; // editor tabs
 
+
+            request.layout = {
+                "side": {
+                    "size": windows.outerLayout.west.state.size,
+                    "state": getLayoutState(windows.outerLayout.west.state)
+                },
+                "sideRight": {
+                    "size": windows.innerLayout.east.state.size,
+                    "state": getLayoutState(windows.innerLayout.east.state)
+                },
+                "bottom": {
+                    "size": windows.innerLayout.south.state.size,
+                    "state": getLayoutState(windows.innerLayout.south.state)
+                }
+            };
+
             $.ajax({
                 type: 'POST',
                 url: config.context + '/session/save',
                 data: JSON.stringify(request),
                 dataType: "json",
-                success: function (data) {
+                success: function (result) {
                 }
             });
         }, 30000);
@@ -54,9 +87,9 @@ var session = {
             return;
         }
 
-        var fileTree = config.latestSessionContent.FileTree,
-                files = config.latestSessionContent.Files,
-                currentFile = config.latestSessionContent.CurrentFile,
+        var fileTree = config.latestSessionContent.fileTree,
+                files = config.latestSessionContent.files,
+                currentFile = config.latestSessionContent.currentFile,
                 id = "",
                 nodesToOpen = [];
 
@@ -118,7 +151,7 @@ var session = {
                 wide.curEditor = editors.data[c].editor;
                 break;
             }
-        }
+        }        
     },
     _initWS: function () {
         // Used for session retention, server will release all resources of the session if this channel closed
@@ -160,9 +193,7 @@ var session = {
         };
 
         sessionWS.onmessage = function (e) {
-            console.log('[session onmessage]' + e.data);
             var data = JSON.parse(e.data);
-
             switch (data.cmd) {
                 case 'create-file':
                     var node = tree.fileTree.getNodeByTId(tree.getTIdByPath(data.dir)),
@@ -192,7 +223,6 @@ var session = {
                                 "isParent": true
                             }]);
                     }
-
                     break;
                 case 'remove-file':
                 case 'rename-file':

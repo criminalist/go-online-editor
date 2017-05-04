@@ -3,34 +3,32 @@
     <head>
         <meta charset="UTF-8">
         <title>{{.i18n.wide}} - {{.i18n.wide_title}}</title>
-
         <meta name="keywords" content="Wide, Golang, IDE, Team, Cloud, B3log"/>
         <meta name="description" content="A Web-based IDE for Teams using Golang, do your development anytime, anywrhere."/>
         <meta name="author" content="B3log">
         <meta property="og:description" content="A Web-based IDE for Teams using Golang, do your development anytime, anywhere."/>
-
+        {{if eq $.conf.RuntimeMode "dev"}}
+        <link rel="stylesheet" href="{{.conf.StaticServer}}/static/js/lib/jquery-layout/layout-default-latest.css">
         <link rel="stylesheet" href="{{.conf.StaticServer}}/static/js/lib/codemirror-{{.codeMirrorVer}}/codemirror.css">
         <link rel="stylesheet" href="{{.conf.StaticServer}}/static/js/lib/codemirror-{{.codeMirrorVer}}/addon/hint/show-hint.css">
         <link rel="stylesheet" href="{{.conf.StaticServer}}/static/js/lib/codemirror-{{.codeMirrorVer}}/addon/lint/lint.css">
         <link rel="stylesheet" href="{{.conf.StaticServer}}/static/js/lib/codemirror-{{.codeMirrorVer}}/addon/fold/foldgutter.css">
         <link rel="stylesheet" href="{{.conf.StaticServer}}/static/js/lib/codemirror-{{.codeMirrorVer}}/addon/dialog/dialog.css">
-
         {{range $index, $theme := .editorThemes}}
         <link rel="stylesheet" href="{{$.conf.StaticServer}}/static/js/overwrite/codemirror/theme/{{$theme}}.css">{{end}}
-
-
-        <link rel="stylesheet" href="{{.conf.StaticServer}}/static/js/lib/ztree/zTreeStyle.css">
-
         <link rel="stylesheet" href="{{.conf.StaticServer}}/static/css/dialog.css?{{.conf.StaticResourceVersion}}">
         <link rel="stylesheet" href="{{.conf.StaticServer}}/static/css/base.css?{{.conf.StaticResourceVersion}}">
         <link rel="stylesheet" href="{{.conf.StaticServer}}/static/css/wide.css?{{.conf.StaticResourceVersion}}">
         <link rel="stylesheet" href="{{.conf.StaticServer}}/static/css/side.css?{{.conf.StaticResourceVersion}}">
         <link rel="stylesheet" href="{{.conf.StaticServer}}/static/css/start.css?{{.conf.StaticResourceVersion}}">
         <link rel="stylesheet" href="{{.conf.StaticServer}}/static/css/about.css?{{.conf.StaticResourceVersion}}">
-
-        <link id="themesLink" rel="stylesheet" href="{{.conf.StaticServer}}/static/css/themes/{{.user.Theme}}.css?{{.conf.StaticResourceVersion}}">
-
+        {{else}}
+        <link rel="stylesheet" href="{{.conf.StaticServer}}/static/css/lib.min.css">        
+        <link rel="stylesheet" href="{{.conf.StaticServer}}/static/css/wide.min.css?{{.conf.StaticResourceVersion}}">
+        {{end}}
+        <link rel="stylesheet" href="{{.conf.StaticServer}}/static/js/lib/ztree/zTreeStyle.min.css">
         <link rel="stylesheet" href="{{.conf.StaticServer}}/static/user/{{.username}}/style.css?{{.conf.StaticResourceVersion}}">
+        <link rel="stylesheet" href="{{.conf.StaticServer}}/static/css/themes/{{.user.Theme}}.css?{{.conf.StaticResourceVersion}}" id="themesLink">
 
         <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     </head>
@@ -314,7 +312,7 @@
                     <span>{{.i18n.team}}</span>
                     <div class="frame">
                         <ul>
-                            <li class="signup" onclick="window.open('/signup')">
+                            <li class="signup" onclick="window.open('{{.conf.Context}}/signup')">
                                 <span class="ico-signup font-ico"></span>
                                 <span>{{.i18n.sign_up}}</span>
                             </li>
@@ -342,12 +340,12 @@
                                 {{.i18n.issues}}
                             </li>
                             <li class="hr"></li>
-                            <li onclick="window.open('/keyboard_shortcuts')">
+                            <li onclick="window.open('{{.conf.Context}}/keyboard_shortcuts')">
                                 <span class="ico-keyboard font-ico"></span>
                                 {{.i18n.keyboard_shortcuts}}
                             </li>
                             <li class="hr"></li>
-                            <li onclick="window.open('/playground')">
+                            <li onclick="window.open('{{.conf.Context}}/playground')">
                                 <span class="space"></span>
                                 Playground
                             </li>
@@ -377,8 +375,8 @@
 
             <div class="fn-right">
                 <img class="gravatar"
-                     onerror="this.src='/static/images/user-thumbnail.png'"
-                     src="https://secure.gravatar.com/avatar/{{.user.Gravatar}}?s=17&d=https://symphony.b3log.org/images/user-thumbnail.png" 
+                     onerror="this.src='{{.conf.StaticServer}}/static/images/user-thumbnail.png'"
+                     src="https://secure.gravatar.com/avatar/{{.user.Gravatar}}?s=17&d=https://hacpai.com/images/user-thumbnail.png" 
                      title="{{.user.Name}}"/>
                 <span class="font-ico ico-share"></span> &nbsp;
                 <span onclick="window.open('https://github.com/b3log/wide')"
@@ -394,92 +392,104 @@
             </div>
         </div>
 
+        <div class="side">
+            <span title="{{.i18n.min}}" class="font-ico ico-min"></span>
+            <div class="tabs">
+                <div class="current" data-index="fileTree">
+                    <span title="{{.i18n.file}}">{{.i18n.file}}</span>
+                </div>
+            </div> 
+            <div class="tabs-panel">
+                <div data-index="fileTree">
+                    <ul id="files" class="ztree" tabindex="-1"></ul>
+                    <input id="importFileupload" class="fn-none" type="file"
+                           name="files[]" onclick="tree.import();" multiple>
+                    <!-- directory context menu -->
+                    <div id="dirRMenu" class="frame">
+                        <ul>
+                            <li class="create" onclick="tree.newFile(this);">
+                                <span class="space"></span> {{.i18n.create_file}}
+                            </li>
+                            <li class="create" onclick="tree.newDir(this);">
+                                <span class="space"></span> {{.i18n.create_dir}}
+                            </li>
+                            <li class="remove" onclick="tree.removeIt(this);">
+                                <span class="ico-remove font-ico"></span> {{.i18n.delete}}
+                            </li>
+                            <li class="remove" onclick="tree.rename(this);">
+                                <span class="space"></span> {{.i18n.rename}}
+                            </li>
+                            <li class="hr"></li>
+                            <li class="find" onclick="$('#dialogSearchForm').dialog('open');">
+                                <span class="font-ico ico-findfiles"></span> {{.i18n.find_in_files}}
+                            </li>
+                            <li class="hr"></li>
+                            <li onclick="tree.refresh(this);">
+                                <span class="ico-refresh font-ico"></span> {{.i18n.refresh}}
+                            </li>
+                            <li class="hr"></li>
+                            <li onclick="tree.gitClone(this);">
+                                <span class="ico-git font-ico"></span> {{.i18n.git_clone}}
+                            </li>
+                            <li class="hr"></li>
+                            <li onclick="$('#importFileupload').click();">
+                                <span class="ico-import font-ico"></span> {{.i18n.import}}
+                            </li>
+                            <li onclick="tree.export();">
+                                <span class="ico-export font-ico"></span> {{.i18n.export}}
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- file context menu -->
+                    <div id="fileRMenu" class="frame">
+                        <ul>
+                            <li class="open" onclick="tree.openFile(wide.curNode);">
+                                <span class="space"></span> {{.i18n.open}}
+                            </li>
+                            <li class="remove" onclick="tree.removeIt(this);">
+                                <span class="ico-remove font-ico"></span> {{.i18n.delete}}
+                            </li>
+                            <li class="remove" onclick="tree.rename(this);">
+                                <span class="space"></span> {{.i18n.rename}}
+                            </li>
+                            <li class="hr"></li>
+                            {{range .crossPlatforms}}
+                            {{if eq . "darwin_amd64" "linux_amd64" "windows_amd64" "linux_arm" "darwin_386" "linux_386" "windows_386"}}
+                            <li class="{{.}}" onclick="tree.crossCompile('{{.}}');">
+                                <span class="space"></span> {{.}}
+                            </li>
+                            {{end}}                                
+                            {{end}}
+                            <li class="hr"></li>
+                            <li class="export" onclick="tree.export(this);">
+                                <span class="ico-export font-ico"></span> {{.i18n.export}}
+                            </li>
+                            <li class="decompress" onclick="tree.decompress(this);">
+                                <span class="space"></span> {{.i18n.decompress}}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="content">
-            <div class="side">
+            <div class="side-right">
                 <span title="{{.i18n.min}}" class="font-ico ico-min"></span>
                 <div class="tabs">
-                    <div class="current" data-index="fileTree">
-                        <span title="{{.i18n.file}}">{{.i18n.file}}</span>
+                    <div class="current" data-index="outline">
+                        <span title="{{.i18n.outline}}">{{.i18n.outline}}</span>
                     </div>
                 </div> 
                 <div class="tabs-panel">
-                    <div data-index="fileTree">
-                        <ul id="files" tabindex="-1" class="ztree"></ul>
-                        <input id="importFileupload" class="fn-none" type="file"
-                               name="files[]" onclick="tree.import();" multiple>
-                        <!-- directory context menu -->
-                        <div id="dirRMenu" class="frame">
-                            <ul>
-                                <li class="create" onclick="tree.newFile(this);">
-                                    <span class="space"></span> {{.i18n.create_file}}
-                                </li>
-                                <li class="create" onclick="tree.newDir(this);">
-                                    <span class="space"></span> {{.i18n.create_dir}}
-                                </li>
-                                <li class="remove" onclick="tree.removeIt(this);">
-                                    <span class="ico-remove font-ico"></span> {{.i18n.delete}}
-                                </li>
-                                <li class="remove" onclick="tree.rename(this);">
-                                    <span class="space"></span> {{.i18n.rename}}
-                                </li>
-                                <li class="hr"></li>
-                                <li class="find" onclick="$('#dialogSearchForm').dialog('open');">
-                                    <span class="font-ico ico-findfiles"></span> {{.i18n.find_in_files}}
-                                </li>
-                                <li class="hr"></li>
-                                <li onclick="tree.refresh(this);">
-                                    <span class="ico-refresh font-ico"></span> {{.i18n.refresh}}
-                                </li>
-                                <li class="hr"></li>
-                                <li onclick="tree.gitClone(this);">
-                                    <span class="ico-git font-ico"></span> {{.i18n.git_clone}}
-                                </li>
-                                <li class="hr"></li>
-                                <li onclick="$('#importFileupload').click();">
-                                    <span class="ico-import font-ico"></span> {{.i18n.import}}
-                                </li>
-                                <li onclick="tree.export();">
-                                    <span class="ico-export font-ico"></span> {{.i18n.export}}
-                                </li>
-                            </ul>
-                        </div>
-
-                        <!-- file context menu -->
-                        <div id="fileRMenu" class="frame">
-                            <ul>
-                                <li class="open" onclick="tree.openFile(wide.curNode);">
-                                    <span class="space"></span> {{.i18n.open}}
-                                </li>
-                                <li class="remove" onclick="tree.removeIt(this);">
-                                    <span class="ico-remove font-ico"></span> {{.i18n.delete}}
-                                </li>
-                                <li class="remove" onclick="tree.rename(this);">
-                                    <span class="space"></span> {{.i18n.rename}}
-                                </li>
-                                <li class="hr"></li>
-                                {{range .crossPlatforms}}
-                                {{if eq . "darwin_amd64" "linux_amd64" "windows_amd64" "linux_arm"}}
-                                <li class="{{.}}" onclick="tree.crossCompile('{{.}}');">
-                                    <span class="space"></span> {{.}}
-                                </li>
-                                {{end}}                                
-                                {{end}}
-                                <li class="hr"></li>
-                                <li class="export" onclick="tree.export(this);">
-                                    <span class="ico-export font-ico"></span> {{.i18n.export}}
-                                </li>
-                                <li class="decompress" onclick="tree.decompress(this);">
-                                    <span class="space"></span> {{.i18n.decompress}}
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
+                    <div id="outline" data-index="outline"></div>
                 </div>
             </div>
 
             <div class="edit-panel">
                 <div class="toolbars">
-                    <span class="font-ico ico-max" onclick="windows.maxEditor()" title="{{.i18n.max_editor}}"></span>
+                    <span class="font-ico ico-max" title="{{.i18n.max_editor}}"></span>
                 </div>
                 <div class="frame">
                     <ul>
@@ -500,18 +510,6 @@
                 </div>
                 <div class="tabs"></div>
                 <div class="tabs-panel"></div>
-            </div>
-
-            <div class="side-right">
-                <span title="{{.i18n.min}}" class="font-ico ico-min"></span>
-                <div class="tabs">
-                    <div class="current" data-index="outline">
-                        <span title="{{.i18n.outline}}">{{.i18n.outline}}</span>
-                    </div>
-                </div> 
-                <div class="tabs-panel">
-                    <div id="outline" tabindex="-1" data-index="outline"></div>
-                </div>
             </div>
 
             <div class="bottom-window-group">
@@ -539,7 +537,7 @@
                         <div class="output" tabindex="-1"><div></div></div>
                     </div>
                     <div class="fn-none" data-index="search">
-                        <div tabindex="-1" class="search">
+                        <div class="search" tabindex="-1">
                             <div class="tabs fn-none">
                                 <div class="current" data-index="first">
                                     <span class="first"></span><span class="ico-close font-ico"></span>
@@ -551,18 +549,13 @@
                         </div>
                     </div>
                     <div class="fn-none" data-index="notification">
-                        <div tabindex="-1" class="notification"><table cellpadding="0" cellspacing="0"></table></div>
+                        <div class="notification" tabindex="-1"><table cellpadding="0" cellspacing="0"></table></div>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="footer fn-clear">
-            <div class="fn-left">
-                <span title="{{.i18n.restore_side}}" class="font-ico ico-restore fn-none"></span>
-                <span title="{{.i18n.restore_bottom}}" class="font-ico ico-restore fn-none"></span>
-                <span title="{{.i18n.restore_outline}}" class="font-ico ico-restore fn-none"></span>
-            </div>
             <div class="fn-right">
                 <span class="cursor"></span>
                 <span class="notification-count" title="{{.i18n.unread_notification}}">{{.i18n.notification}}</span>
@@ -592,7 +585,7 @@
         </div>
         <div id="dialogGoFilePrompt" class="dialog-prompt fn-none">
             <input/>
-            <ul class="list" tabindex="-1"></ul>
+            <ul class="list"></ul>
         </div>
         <div id="dialogSearchForm" class="dialog-form fn-none">
             <input placeholder="{{.i18n.keyword}}" />
@@ -607,34 +600,35 @@
             </div>
         </div>
         <script>
-                    var config = {
-                    "context": {{.conf.Context}},
-                            "staticServer": '{{.conf.StaticServer}}',
-                            "pathSeparator": '{{.pathSeparator}}',
-                            "label": {{.i18n}},
-                            "channel": {{.conf.Channel}},
-                            "wideSessionId": '{{.sid}}',
-                            "editorTheme": '{{.user.Editor.Theme}}',
-                            "latestSessionContent": {{.latestSessionContent}},
-                            "editorTabSize": '{{.user.Editor.TabSize}}',
-                            "keymap": '{{.user.Keymap}}',
-                            "autocomplete": {{.conf.Autocomplete}}
-                    };
-                    // 发往 Wide 的所有 AJAX 请求需要使用该函数创建请求参数.
-                            function newWideRequest() {
-                            var ret = {
-                            sid: config.wideSessionId
-                            };
-                                    return ret;
-                            }
+            var config = {
+            "context": {{.conf.Context}},
+                    "staticServer": '{{.conf.StaticServer}}',
+                    "pathSeparator": '{{.pathSeparator}}',
+                    "label": {{.i18n}},
+                    "channel": {{.conf.Channel}},
+                    "wideSessionId": '{{.sid}}',
+                    "editorTheme": '{{.user.Editor.Theme}}',
+                    "latestSessionContent": {{.latestSessionContent}},
+                    "editorTabSize": '{{.user.Editor.TabSize}}',
+                    "keymap": '{{.user.Keymap}}',
+                    "autocomplete": {{.conf.Autocomplete}}
+            };
+            // 发往 Wide 的所有 AJAX 请求需要使用该函数创建请求参数.
+            function newWideRequest() {
+            var ret = {
+            sid: config.wideSessionId
+            };
+            return ret;
+            }
 
         </script>
+        {{if eq $.conf.RuntimeMode "dev"}}
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/jquery-2.1.1.min.js"></script>
+        <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/jquery-ui.min.js"></script>
+        <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/jquery-layout/jquery.layout-latest.js"></script>
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/reconnecting-websocket.js"></script>
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/ztree/jquery.ztree.all-3.5.min.js"></script>    
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/Autolinker.min.js"></script>    
-
-
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/codemirror-{{.codeMirrorVer}}/codemirror.min.js"></script>
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/codemirror-{{.codeMirrorVer}}/addon/lint/lint.js"></script>
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/codemirror-{{.codeMirrorVer}}/addon/lint/json-lint.js"></script>
@@ -668,18 +662,12 @@
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/codemirror-{{.codeMirrorVer}}/mode/shell/shell.js"></script>
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/codemirror-{{.codeMirrorVer}}/mode/sql/sql.js"></script>
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/codemirror-{{.codeMirrorVer}}/keymap/vim.js"></script>
-
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/lint/json-lint.js?{{.conf.StaticResourceVersion}}"></script>
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/lint/go-lint.js?{{.conf.StaticResourceVersion}}"></script>
-
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/emmet.js?{{.conf.StaticResourceVersion}}"></script>            
-
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/js-beautify-1.5.4/beautify.js?{{.conf.StaticResourceVersion}}"></script>
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/js-beautify-1.5.4/beautify-html.js?{{.conf.StaticResourceVersion}}"></script>
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/js-beautify-1.5.4/beautify-css.js?{{.conf.StaticResourceVersion}}"></script>
-
-        <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/zeroclipboard/ZeroClipboard.min.js?{{.conf.StaticResourceVersion}}"></script>
-
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/jquery-file-upload-9.8.0/vendor/jquery.ui.widget.js?{{.conf.StaticResourceVersion}}"></script>
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/jquery-file-upload-9.8.0/jquery.iframe-transport.js?{{.conf.StaticResourceVersion}}"></script>
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/jquery-file-upload-9.8.0/jquery.fileupload.js?{{.conf.StaticResourceVersion}}"></script>
@@ -695,5 +683,11 @@
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/windows.js?{{.conf.StaticResourceVersion}}"></script>
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/hotkeys.js?{{.conf.StaticResourceVersion}}"></script>
         <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/bottomGroup.js?{{.conf.StaticResourceVersion}}"></script>
+        {{else}}
+        <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib.min.js"></script>
+        <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/wide.min.js?{{.conf.StaticResourceVersion}}"></script>
+        {{end}}
+        <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/ztree/jquery.ztree.all-3.5.min.js"></script> 
+        <script type="text/javascript" src="{{.conf.StaticServer}}/static/js/lib/zeroclipboard/ZeroClipboard.min.js"></script>
     </body>
 </html>

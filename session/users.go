@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2015, b3log.org
+// Copyright (c) 2014-2017, b3log.org & hacpai.com
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ func PreferenceHandler(w http.ResponseWriter, r *http.Request) {
 	httpSession, _ := HTTPSession.Get(r, "wide-session")
 
 	if httpSession.IsNew {
-		http.Redirect(w, r, conf.Wide.Context+"login", http.StatusFound)
+		http.Redirect(w, r, conf.Wide.Context+"/login", http.StatusFound)
 
 		return
 	}
@@ -67,6 +67,14 @@ func PreferenceHandler(w http.ResponseWriter, r *http.Request) {
 	user := conf.GetUser(username)
 
 	if "GET" == r.Method {
+		tmpLinux := user.GoBuildArgsForLinux
+		tmpWindows := user.GoBuildArgsForWindows
+		tmpDarwin := user.GoBuildArgsForDarwin
+
+		user.GoBuildArgsForLinux = strings.Replace(user.GoBuildArgsForLinux, `"`, `&quot;`, -1)
+		user.GoBuildArgsForWindows = strings.Replace(user.GoBuildArgsForWindows, `"`, `&quot;`, -1)
+		user.GoBuildArgsForDarwin = strings.Replace(user.GoBuildArgsForDarwin, `"`, `&quot;`, -1)
+
 		model := map[string]interface{}{"conf": conf.Wide, "i18n": i18n.GetAll(user.Locale), "user": user,
 			"ver": conf.WideVersion, "goos": runtime.GOOS, "goarch": runtime.GOARCH, "gover": runtime.Version(),
 			"locales": i18n.GetLocalesNames(), "gofmts": util.Go.GetGoFormats(),
@@ -78,41 +86,50 @@ func PreferenceHandler(w http.ResponseWriter, r *http.Request) {
 			logger.Error(err)
 			http.Error(w, err.Error(), 500)
 
+			user.GoBuildArgsForLinux = tmpLinux
+			user.GoBuildArgsForWindows = tmpWindows
+			user.GoBuildArgsForDarwin = tmpDarwin
 			return
 		}
 
 		t.Execute(w, model)
+
+		user.GoBuildArgsForLinux = tmpLinux
+		user.GoBuildArgsForWindows = tmpWindows
+		user.GoBuildArgsForDarwin = tmpDarwin
 
 		return
 	}
 
 	// non-GET request as save request
 
-	succ := true
-	data := map[string]interface{}{"succ": &succ}
-	defer util.RetJSON(w, r, data)
+	result := util.NewResult()
+	defer util.RetResult(w, r, result)
 
 	args := struct {
-		FontFamily       string
-		FontSize         string
-		GoFmt            string
-		Keymap           string
-		Workspace        string
-		Username         string
-		Password         string
-		Email            string
-		Locale           string
-		Theme            string
-		EditorFontFamily string
-		EditorFontSize   string
-		EditorLineHeight string
-		EditorTheme      string
-		EditorTabSize    string
+		FontFamily            string
+		FontSize              string
+		GoFmt                 string
+		GoBuildArgsForLinux   string
+		GoBuildArgsForWindows string
+		GoBuildArgsForDarwin  string
+		Keymap                string
+		Workspace             string
+		Username              string
+		Password              string
+		Email                 string
+		Locale                string
+		Theme                 string
+		EditorFontFamily      string
+		EditorFontSize        string
+		EditorLineHeight      string
+		EditorTheme           string
+		EditorTabSize         string
 	}{}
 
 	if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
 		logger.Error(err)
-		succ = false
+		result.Succ = false
 
 		return
 	}
@@ -120,6 +137,9 @@ func PreferenceHandler(w http.ResponseWriter, r *http.Request) {
 	user.FontFamily = args.FontFamily
 	user.FontSize = args.FontSize
 	user.GoFormat = args.GoFmt
+	user.GoBuildArgsForLinux = args.GoBuildArgsForLinux
+	user.GoBuildArgsForWindows = args.GoBuildArgsForWindows
+	user.GoBuildArgsForDarwin = args.GoBuildArgsForDarwin
 	user.Keymap = args.Keymap
 	// XXX: disallow change workspace at present
 	// user.Workspace = args.Workspace
@@ -146,7 +166,7 @@ func PreferenceHandler(w http.ResponseWriter, r *http.Request) {
 	user.Lived = now
 	user.Updated = now
 
-	succ = user.Save()
+	result.Succ = user.Save()
 }
 
 // LoginHandler handles request of user login.
@@ -172,10 +192,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// non-GET request as login request
-
-	succ := true
-	data := map[string]interface{}{"succ": &succ}
-	defer util.RetJSON(w, r, data)
+	result := util.NewResult()
+	defer util.RetResult(w, r, result)
 
 	args := struct {
 		Username string
@@ -185,16 +203,16 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	args.Username = r.FormValue("username")
 	args.Password = r.FormValue("password")
 
-	succ = false
+	result.Succ = false
 	for _, user := range conf.Users {
 		if user.Name == args.Username && user.Password == conf.Salt(args.Password, user.Salt) {
-			succ = true
+			result.Succ = true
 
 			break
 		}
 	}
 
-	if !succ {
+	if !result.Succ {
 		return
 	}
 
@@ -213,8 +231,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 // LogoutHandler handles request of user logout (exit).
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	data := map[string]interface{}{"succ": true}
-	defer util.RetJSON(w, r, data)
+	result := util.NewResult()
+	defer util.RetResult(w, r, result)
 
 	httpSession, _ := HTTPSession.Get(r, "wide-session")
 
@@ -227,11 +245,8 @@ func SignUpUserHandler(w http.ResponseWriter, r *http.Request) {
 	if "GET" == r.Method {
 		// show the user sign up page
 
-		firstUserWorkspace := conf.GetUserWorkspace(conf.Users[0].Name)
-		dir := filepath.Dir(firstUserWorkspace)
-
 		model := map[string]interface{}{"conf": conf.Wide, "i18n": i18n.GetAll(conf.Wide.Locale),
-			"locale": conf.Wide.Locale, "ver": conf.WideVersion, "dir": dir,
+			"locale": conf.Wide.Locale, "ver": conf.WideVersion, "dir": conf.Wide.UsersWorkspaces,
 			"pathSeparator": conf.PathSeparator, "year": time.Now().Year()}
 
 		t, err := template.ParseFiles("views/sign_up.html")
@@ -250,15 +265,14 @@ func SignUpUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	// non-GET request as add user request
 
-	succ := true
-	data := map[string]interface{}{"succ": &succ}
-	defer util.RetJSON(w, r, data)
+	result := util.NewResult()
+	defer util.RetResult(w, r, result)
 
 	var args map[string]interface{}
 
 	if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
 		logger.Error(err)
-		succ = false
+		result.Succ = false
 
 		return
 	}
@@ -269,8 +283,8 @@ func SignUpUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	msg := addUser(username, password, email)
 	if userCreated != msg {
-		succ = false
-		data["msg"] = msg
+		result.Succ = false
+		result.Msg = msg
 
 		return
 	}
@@ -294,13 +308,7 @@ func FixedTimeSave() {
 		defer util.Recover()
 
 		for _ = range time.Tick(time.Minute) {
-			users := getOnlineUsers()
-
-			for _, u := range users {
-				if u.Save() {
-					logger.Tracef("Saved online user [%s]'s configurations", u.Name)
-				}
-			}
+			SaveOnlineUsers()
 		}
 	}()
 }
@@ -319,6 +327,16 @@ func CanAccess(username, path string) bool {
 	}
 
 	return false
+}
+
+// SaveOnlineUsers saves online users' configurations at once.
+func SaveOnlineUsers() {
+	users := getOnlineUsers()
+	for _, u := range users {
+		if u.Save() {
+			logger.Tracef("Saved online user [%s]'s configurations", u.Name)
+		}
+	}
 }
 
 func getOnlineUsers() []*conf.User {
@@ -378,9 +396,7 @@ func addUser(username, password, email string) string {
 		}
 	}
 
-	firstUserWorkspace := conf.GetUserWorkspace(conf.Users[0].Name)
-	dir := filepath.Dir(firstUserWorkspace)
-	workspace := filepath.Join(dir, username)
+	workspace := filepath.Join(conf.Wide.UsersWorkspaces, username)
 
 	newUser := conf.NewUser(username, password, email, workspace)
 	conf.Users = append(conf.Users, newUser)

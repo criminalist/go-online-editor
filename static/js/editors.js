@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, b3log.org
+ * Copyright (c) 2014-2017, b3log.org & hacpai.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/*
+ * @file editor.js
+ *
+ * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
+ * @author <a href="http://88250.b3log.org">Liang Ding</a>
+ * @version 1.1.1.0, Jan 12, 2016
+ */
 var editors = {
     autocompleteMutex: false,
     data: [],
@@ -130,28 +137,9 @@ var editors = {
                     wide.curEditor = undefined;
                     $(".footer .cursor").text('');
                     wide.refreshOutline();
+                    
                     return false;
                 }
-
-                // set tree node selected
-                var tId = tree.getTIdByPath(id);
-                var node = tree.fileTree.getNodeByTId(tId);
-                tree.fileTree.selectNode(node);
-                wide.curNode = node;
-
-                for (var i = 0, ii = editors.data.length; i < ii; i++) {
-                    if (editors.data[i].id === id) {
-                        wide.curEditor = editors.data[i].editor;
-                        break;
-                    }
-                }
-
-                var cursor = wide.curEditor.getCursor();
-                wide.curEditor.setCursor(cursor);
-                wide.curEditor.focus();
-                wide.refreshOutline();
-
-                $(".footer .cursor").text('|   ' + (cursor.line + 1) + ':' + (cursor.ch + 1) + '   |');
             },
             removeBefore: function (id) {
                 if (id === 'startPage') { // 当前关闭的 tab 是起始页
@@ -219,31 +207,6 @@ var editors = {
                     // 关闭的不是当前编辑器
                     return false;
                 }
-
-                // set tree node selected
-                var tId = tree.getTIdByPath(id);
-                var node = tree.fileTree.getNodeByTId(tId);
-                tree.fileTree.selectNode(node);
-                wide.curNode = node;
-
-                for (var i = 0, ii = editors.data.length; i < ii; i++) {
-                    if (editors.data[i].id === nextId) {
-                        wide.curEditor = editors.data[i].editor;
-                        break;
-                    }
-                }
-
-                wide.refreshOutline();
-                var cursor = wide.curEditor.getCursor();
-                $(".footer .cursor").text('|   ' + (cursor.line + 1) + ':' + (cursor.ch + 1) + '   |');
-            }
-        });
-
-        $(".edit-panel .tabs").on("dblclick", function () {
-            if ($(".toolbars .ico-max").length === 1) {
-                windows.maxEditor();
-            } else {
-                windows.restoreEditor();
             }
         });
 
@@ -283,10 +246,9 @@ var editors = {
                     + '"><span class="ico-start font-ico"></span> ' + config.label.start_page + '</span>',
             content: '<div id="startPage"></div>',
             after: function () {
-                $("#startPage").height($('.side-right').height() - $(".bottom-window-group").children(".tabs").height() - 100);
                 $("#startPage").load(config.context + '/start?sid=' + config.wideSessionId);
                 $.ajax({
-                    url: "https://symphony.b3log.org/apis/articles?tags=wide,golang&p=1&size=20",
+                    url: "https://hacpai.com/apis/articles?tags=wide,golang&p=1&size=20",
                     type: "GET",
                     dataType: "jsonp",
                     jsonp: "callback",
@@ -302,11 +264,12 @@ var editors = {
                             length = 9;
                         }
 
-                        var listHTML = "<ul><li class='title'>" + config.label.community + "</li>";
+                        var listHTML = "<ul><li class='title'>" + config.label.community +
+                            "<a href='https://hacpai.com/article/1437497122181' target='_blank' class='fn-right'>边看边练</li>";
                         for (var i = 0; i < length; i++) {
                             var article = articles[i];
                             listHTML += "<li>"
-                                    + "<a target='_blank' href='http://hacpai.com"
+                                    + "<a target='_blank' href='"
                                     + article.articlePermalink + "'>"
                                     + article.articleTitle + "</a>&nbsp; <span class='date'>"
                                     + dateFormat(article.articleCreateTime, 'yyyy-MM-dd');
@@ -320,11 +283,12 @@ var editors = {
         });
     },
     getCurrentId: function () {
-        var currentId = editors.tabs.getCurrentId();
-        if (currentId === 'startPage') {
-            currentId = null;
+        var ret = editors.tabs.getCurrentId();
+        if (ret === 'startPage') {
+            ret = null;
         }
-        return currentId;
+        
+        return ret;
     },
     getCurrentPath: function () {
         var currentPath = $(".edit-panel .tabs .current span:eq(0)").attr("title");
@@ -474,14 +438,15 @@ var editors = {
                 url: config.context + '/exprinfo',
                 data: JSON.stringify(request),
                 dataType: "json",
-                success: function (data) {
-                    if (!data.succ) {
+                success: function (result) {
+                    if (!result.succ) {
                         return;
                     }
+                    
                     var position = wide.curEditor.cursorCoords();
                     $("body").append('<div style="top:'
                             + (position.top + 15) + 'px;left:' + position.left
-                            + 'px" class="edit-exprinfo">' + data.info + '</div>');
+                            + 'px" class="edit-exprinfo">' + result.data + '</div>');
                 }
             });
         };
@@ -621,10 +586,12 @@ var editors = {
                 url: config.context + '/find/decl',
                 data: JSON.stringify(request),
                 dataType: "json",
-                success: function (data) {
-                    if (!data.succ) {
+                success: function (result) {
+                    if (!result.succ) {
                         return;
                     }
+                    
+                    var data = result.data;
 
                     var tId = tree.getTIdByPath(data.path);
                     wide.curNode = tree.fileTree.getNodeByTId(tId);
@@ -649,12 +616,12 @@ var editors = {
                 url: config.context + '/find/usages',
                 data: JSON.stringify(request),
                 dataType: "json",
-                success: function (data) {
-                    if (!data.succ) {
+                success: function (result) {
+                    if (!result.succ) {
                         return;
                     }
 
-                    editors.appendSearch(data.founds, 'usages', '');
+                    editors.appendSearch(result.data, 'usages', '');
                 }
             });
         };
@@ -837,10 +804,6 @@ var editors = {
             var cursor = cm.getCursor();
 
             $(".footer .cursor").text('|   ' + (cursor.line + 1) + ':' + (cursor.ch + 1) + '   |');
-        });
-
-        editor.on('focus', function (cm) {
-            windows.clearFloat();
         });
 
         editor.on('blur', function (cm) {

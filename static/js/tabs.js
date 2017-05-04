@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, b3log.org
+ * Copyright (c) 2014-2017, b3log.org & hacpai.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
+/*
+ * @file tabs.js
+ *
+ * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
+ * @version 1.0.0.1, Dec 8, 2015
+ */
 var Tabs = function (obj) {
     obj._$tabsPanel = $(obj.id + " > .tabs-panel");
     obj._$tabs = $(obj.id + " > .tabs");
@@ -46,7 +52,7 @@ $.extend(Tabs.prototype, {
             if ($(this).hasClass('current')) {
                 return false;
             }
-            
+
             var id = $(this).data("index");
             _that.setCurrent(id);
             if (typeof (obj.clickAfter) === "function") {
@@ -160,6 +166,33 @@ $.extend(Tabs.prototype, {
 
         if (typeof this.obj.setAfter === 'function') {
             this.obj.setAfter();
+        }
+
+        var id = this.getCurrentId();
+        if ("startPage" === id) {
+            return;
+        }
+
+        // set tree node selected
+        var tId = tree.getTIdByPath(id);
+        var node = tree.fileTree.getNodeByTId(tId);
+        tree.fileTree.selectNode(node);
+        wide.curNode = node;
+
+        for (var i = 0, ii = editors.data.length; i < ii; i++) {
+            if (editors.data[i].id === id) {
+                wide.curEditor = editors.data[i].editor;
+                break;
+            }
+        }
+
+        if (wide.curEditor) {
+            var cursor = wide.curEditor.getCursor();
+            wide.curEditor.setCursor(cursor);
+            wide.curEditor.focus();
+            wide.refreshOutline();
+
+            $(".footer .cursor").text('|   ' + (cursor.line + 1) + ':' + (cursor.ch + 1) + '   |');
         }
     }
 });

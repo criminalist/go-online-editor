@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2015, b3log.org
+// Copyright (c) 2014-2017, b3log.org & hacpai.com
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,10 +16,12 @@ package util
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 )
 
-var packageName = "test_zip"
+var testDir = "../tmp"
+var packageName = filepath.Join(testDir, "test_zip")
 
 func TestCreate(t *testing.T) {
 	zipFile, err := Zip.Create(packageName + ".zip")
@@ -53,12 +55,95 @@ func TestUnzip(t *testing.T) {
 	}
 }
 
+func _TestEmptyDir(t *testing.T) {
+	dir1 := "/dir/subDir1"
+	dir2 := "/dir/subDir2"
+
+	err := os.MkdirAll(packageName+dir1, os.ModeDir)
+	if nil != err {
+		t.Error(err)
+
+		return
+	}
+
+	err = os.MkdirAll(packageName+dir2, os.ModeDir)
+	if nil != err {
+		t.Error(err)
+
+		return
+	}
+
+	f, err := os.Create(packageName + dir2 + "/file")
+	if nil != err {
+		t.Error(err)
+
+		return
+	}
+	f.Close()
+
+	zipFile, err := Zip.Create(packageName + "/dir.zip")
+	if nil != err {
+		t.Error(err)
+
+		return
+	}
+
+	zipFile.AddDirectoryN("dir", packageName+"/dir")
+	if nil != err {
+		t.Error(err)
+
+		return
+	}
+
+	err = zipFile.Close()
+	if nil != err {
+		t.Error(err)
+
+		return
+	}
+
+	err = Zip.Unzip(packageName+"/dir.zip", packageName+"/unzipDir")
+	if nil != err {
+		t.Error(err)
+
+		return
+	}
+
+	if !File.IsExist(packageName+"/unzipDir") || !File.IsDir(packageName+"/unzipDir") {
+		t.Error("Unzip failed")
+
+		return
+	}
+
+	if !File.IsExist(packageName+"/unzipDir"+dir1) || !File.IsDir(packageName+"/unzipDir"+dir1) {
+		t.Error("Unzip failed")
+
+		return
+	}
+
+	if !File.IsExist(packageName+"/unzipDir"+dir2) || !File.IsDir(packageName+"/unzipDir"+dir2) {
+		t.Error("Unzip failed")
+
+		return
+	}
+
+	if !File.IsExist(packageName+"/unzipDir"+dir2+"/file") || File.IsDir(packageName+"/unzipDir"+dir2+"/file") {
+		t.Error("Unzip failed")
+
+		return
+	}
+}
+
 func TestMain(m *testing.M) {
+	logger.Info(testDir)
+
 	retCode := m.Run()
 
 	// clean test data
-	os.RemoveAll(packageName + ".zip")
-	os.RemoveAll(packageName)
+	os.RemoveAll(testDir + "/test_zip")
+	os.RemoveAll(testDir + "/util")
+	os.RemoveAll(testDir + "/file.go")
+	os.RemoveAll(testDir + "/test_zip.zip")
 
 	os.Exit(retCode)
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2015, b3log.org
+// Copyright (c) 2014-2017, b3log.org & hacpai.com
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,9 @@
 package util
 
 import (
+	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/b3log/wide/log"
@@ -33,6 +35,8 @@ var File = myfile{}
 func (*myfile) GetFileSize(path string) int64 {
 	fi, err := os.Stat(path)
 	if nil != err {
+		fileLogger.Error(err)
+
 		return -1
 	}
 
@@ -79,4 +83,77 @@ func (*myfile) IsDir(path string) bool {
 	}
 
 	return fio.IsDir()
+}
+
+// CopyFile copies the source file to the dest file.
+func (*myfile) CopyFile(source string, dest string) (err error) {
+	sourcefile, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+
+	defer sourcefile.Close()
+
+	destfile, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+
+	defer destfile.Close()
+
+	_, err = io.Copy(destfile, sourcefile)
+	if err == nil {
+		sourceinfo, err := os.Stat(source)
+		if err != nil {
+			err = os.Chmod(dest, sourceinfo.Mode())
+		}
+	}
+
+	return nil
+}
+
+// CopyDir copies the source directory to the dest directory.
+func (*myfile) CopyDir(source string, dest string) (err error) {
+	sourceinfo, err := os.Stat(source)
+	if err != nil {
+		return err
+	}
+
+	// create dest dir
+	err = os.MkdirAll(dest, sourceinfo.Mode())
+	if err != nil {
+		return err
+	}
+
+	directory, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+
+	defer directory.Close()
+
+	objects, err := directory.Readdir(-1)
+	if err != nil {
+		return err
+	}
+
+	for _, obj := range objects {
+		srcFilePath := filepath.Join(source, obj.Name())
+		destFilePath := filepath.Join(dest, obj.Name())
+
+		if obj.IsDir() {
+			// create sub-directories - recursively
+			err = File.CopyDir(srcFilePath, destFilePath)
+			if err != nil {
+				fileLogger.Error(err)
+			}
+		} else {
+			err = File.CopyFile(srcFilePath, destFilePath)
+			if err != nil {
+				fileLogger.Error(err)
+			}
+		}
+	}
+
+	return nil
 }

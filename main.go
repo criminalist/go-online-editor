@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2015, b3log.org
+// Copyright (c) 2014-2017, b3log.org & hacpai.com
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,8 +23,10 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/signal"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/b3log/wide/conf"
@@ -58,6 +60,7 @@ func init() {
 	confStat := flag.Bool("stat", false, "whether report statistics periodically")
 	confDocker := flag.Bool("docker", false, "whether run in a docker container")
 	confPlayground := flag.String("playground", "", "this will overwrite Wide.Playground if specified")
+	confUsersWorkspaces := flag.String("users_workspaces", "", "this will overwrite Wide.UsersWorkspaces if specified")
 
 	flag.Parse()
 
@@ -66,20 +69,17 @@ func init() {
 
 	wd := util.OS.Pwd()
 	if strings.HasPrefix(wd, os.TempDir()) {
-		logger.Error("Don't run wide in OS' temp directory or with `go run`")
+		logger.Error("Don't run Wide in OS' temp directory or with `go run`")
 
 		os.Exit(-1)
 	}
 
 	i18n.Load()
-
 	event.Load()
-
 	conf.Load(*confPath, *confIP, *confPort, *confServer, *confLogLevel, *confStaticServer, *confContext, *confChannel,
-		*confPlayground, *confDocker)
+		*confPlayground, *confDocker, *confUsersWorkspaces)
 
 	conf.FixedTimeCheckEnv()
-
 	session.FixedTimeSave()
 	session.FixedTimeRelease()
 
@@ -87,8 +87,8 @@ func init() {
 		session.FixedTimeReport()
 	}
 
-	logger.Debug("host ["+runtime.Version()+", "+runtime.GOOS+"_"+runtime.GOARCH+
-		"], cross-compilation ", util.Go.GetCrossPlatforms())
+	logger.Debug("host ["+runtime.Version()+", "+runtime.GOOS+"_"+runtime.GOARCH+"], cross-compilation ",
+		util.Go.GetCrossPlatforms())
 }
 
 // Main.
@@ -96,6 +96,7 @@ func main() {
 	runtime.GOMAXPROCS(conf.Wide.MaxProcs)
 
 	initMime()
+	handleSignal()
 
 	// IDE
 	http.HandleFunc(conf.Wide.Context+"/", handlerGzWrapper(indexHandler))
@@ -205,22 +206,22 @@ func main() {
 
 // indexHandler handles request of Wide index.
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	if "/" != r.RequestURI {
-		http.Redirect(w, r, "/", http.StatusFound)
+	if conf.Wide.Context+"/" != r.RequestURI {
+		http.Redirect(w, r, conf.Wide.Context+"/", http.StatusFound)
 
 		return
 	}
 
 	httpSession, _ := session.HTTPSession.Get(r, "wide-session")
 	if httpSession.IsNew {
-		http.Redirect(w, r, conf.Wide.Context+"login", http.StatusFound)
+		http.Redirect(w, r, conf.Wide.Context+"/login", http.StatusFound)
 
 		return
 	}
 
 	username := httpSession.Values["username"].(string)
 	if "playground" == username { // reserved user for Playground
-		http.Redirect(w, r, conf.Wide.Context+"login", http.StatusFound)
+		http.Redirect(w, r, conf.Wide.Context+"/login", http.StatusFound)
 
 		return
 	}
@@ -235,7 +236,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	if nil == user {
 		logger.Warnf("Not found user [%s]", username)
 
-		http.Redirect(w, r, conf.Wide.Context+"login", http.StatusFound)
+		http.Redirect(w, r, conf.Wide.Context+"/login", http.StatusFound)
 
 		return
 	}
@@ -252,7 +253,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Debugf("User [%s] has [%d] sessions", username, len(wideSessions))
 
 	t, err := template.ParseFiles("views/index.html")
-
 	if nil != err {
 		logger.Error(err)
 		http.Error(w, err.Error(), 500)
@@ -261,6 +261,22 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t.Execute(w, model)
+}
+
+// handleSignal handles system signal for graceful shutdown.
+func handleSignal() {
+	go func() {
+		c := make(chan os.Signal)
+
+		signal.Notify(c, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+		s := <-c
+		logger.Tracef("Got signal [%s]", s)
+
+		session.SaveOnlineUsers()
+		logger.Tracef("Saved all online user, exit")
+
+		os.Exit(0)
+	}()
 }
 
 // serveSingle registers the handler function for the given pattern and filename.
@@ -274,7 +290,7 @@ func serveSingle(pattern string, filename string) {
 func startHandler(w http.ResponseWriter, r *http.Request) {
 	httpSession, _ := session.HTTPSession.Get(r, "wide-session")
 	if httpSession.IsNew {
-		http.Redirect(w, r, conf.Wide.Context+"login", http.StatusFound)
+		http.Redirect(w, r, conf.Wide.Context+"/login", http.StatusFound)
 
 		return
 	}
@@ -314,7 +330,7 @@ func startHandler(w http.ResponseWriter, r *http.Request) {
 func keyboardShortcutsHandler(w http.ResponseWriter, r *http.Request) {
 	httpSession, _ := session.HTTPSession.Get(r, "wide-session")
 	if httpSession.IsNew {
-		http.Redirect(w, r, conf.Wide.Context+"login", http.StatusFound)
+		http.Redirect(w, r, conf.Wide.Context+"/login", http.StatusFound)
 
 		return
 	}
@@ -346,7 +362,7 @@ func keyboardShortcutsHandler(w http.ResponseWriter, r *http.Request) {
 func aboutHandler(w http.ResponseWriter, r *http.Request) {
 	httpSession, _ := session.HTTPSession.Get(r, "wide-session")
 	if httpSession.IsNew {
-		http.Redirect(w, r, conf.Wide.Context+"login", http.StatusFound)
+		http.Redirect(w, r, conf.Wide.Context+"/login", http.StatusFound)
 
 		return
 	}

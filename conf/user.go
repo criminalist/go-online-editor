@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2015, b3log.org
+// Copyright (c) 2014-2017, b3log.org & hacpai.com
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,48 +22,56 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/b3log/wide/util"
 )
 
-// Layout represents the layot of a window.
+// Panel represents a UI panel.
+type Panel struct {
+	State string `json:"state"` // panel state, "min"/"max"/"normal"
+	Size  uint16 `json:"size"`  // panel size
+}
+
+// Layout represents the UI layout.
 type Layout struct {
-	State string // min/max/normal
+	Side      *Panel `json:"side"`      // Side panel
+	SideRight *Panel `json:"sideRight"` // Right-Side panel
+	Bottom    *Panel `json:"bottom"`    // Bottom panel
 }
 
 // LatestSessionContent represents the latest session content.
 type LatestSessionContent struct {
-	FileTree    []string // paths of expanding nodes of file tree
-	Files       []string // paths of files of opening editor tabs
-	CurrentFile string   // path of file of the current focused editor tab
-
-	FileTreeLayout *Layout // TODO: https://github.com/b3log/wide/issues/205
-	EditorLayout   *Layout // TODO: https://github.com/b3log/wide/issues/205
-	OutlineLayout  *Layout // TODO: https://github.com/b3log/wide/issues/205
-	BottomLayout   *Layout // TODO: https://github.com/b3log/wide/issues/205
+	FileTree    []string `json:"fileTree"`    // paths of expanding nodes of file tree
+	Files       []string `json:"files"`       // paths of files of opening editor tabs
+	CurrentFile string   `json:"currentFile"` // path of file of the current focused editor tab
+	Layout      *Layout  `json:"layout"`      // UI Layout
 }
 
 // User configuration.
 type User struct {
-	Name                 string
-	Password             string
-	Salt                 string
-	Email                string
-	Gravatar             string // see http://gravatar.com
-	Workspace            string // the GOPATH of this user (maybe contain several paths splitted by os.PathListSeparator)
-	Locale               string
-	GoFormat             string
-	FontFamily           string
-	FontSize             string
-	Theme                string
-	Keymap               string // wide/vim
-	Created              int64  // user create time in unix nano
-	Updated              int64  // preference update time in unix nano
-	Lived                int64  // the latest session activity in unix nano
-	Editor               *editor
-	LatestSessionContent *LatestSessionContent
+	Name                  string
+	Password              string
+	Salt                  string
+	Email                 string
+	Gravatar              string // see http://gravatar.com
+	Workspace             string // the GOPATH of this user (maybe contain several paths splitted by os.PathListSeparator)
+	Locale                string
+	GoFormat              string
+	GoBuildArgsForLinux   string
+	GoBuildArgsForWindows string
+	GoBuildArgsForDarwin  string
+	FontFamily            string
+	FontSize              string
+	Theme                 string
+	Keymap                string // wide/vim
+	Created               int64  // user create time in unix nano
+	Updated               int64  // preference update time in unix nano
+	Lived                 int64  // the latest session activity in unix nano
+	Editor                *editor
+	LatestSessionContent  *LatestSessionContent
 }
 
 // Editor configuration of a user.
@@ -87,7 +95,9 @@ func NewUser(username, password, email, workspace string) *User {
 	now := time.Now().UnixNano()
 
 	return &User{Name: username, Password: password, Salt: salt, Email: email, Gravatar: gravatar, Workspace: workspace,
-		Locale: Wide.Locale, GoFormat: "gofmt", FontFamily: "Helvetica", FontSize: "13px", Theme: "default",
+		Locale: Wide.Locale, GoFormat: "gofmt",
+		GoBuildArgsForLinux: "-i", GoBuildArgsForWindows: "-i", GoBuildArgsForDarwin: "-i",
+		FontFamily: "Helvetica", FontSize: "13px", Theme: "default",
 		Keymap:  "wide",
 		Created: now, Updated: now, Lived: now,
 		Editor: &editor{FontFamily: "Consolas, 'Courier New', monospace", FontSize: "inherit", LineHeight: "17px",
@@ -100,6 +110,12 @@ func (u *User) Save() bool {
 
 	if nil != err {
 		logger.Error(err)
+
+		return false
+	}
+
+	if "" == string(bytes) {
+		logger.Error("Truncated user [" + u.Name + "]")
 
 		return false
 	}
@@ -143,4 +159,26 @@ func Salt(password, salt string) string {
 	sha1hash.Write([]byte(password + salt))
 
 	return hex.EncodeToString(sha1hash.Sum(nil))
+}
+
+// GetBuildArgs get build args with the specified os.
+func (u *User) GetBuildArgs(os string) []string {
+	var tmp string
+	if os == "windows" {
+		tmp = u.GoBuildArgsForWindows
+	}
+	if os == "linux" {
+		tmp = u.GoBuildArgsForLinux
+	}
+	if os == "darwin" {
+		tmp = u.GoBuildArgsForDarwin
+	}
+
+	exp := regexp.MustCompile(`[^\s"']+|"([^"]*)"|'([^']*)'`)
+	ret := exp.FindAllString(tmp, -1)
+	for idx := range ret {
+		ret[idx] = strings.Replace(ret[idx], "\"", "", -1)
+	}
+
+	return ret
 }

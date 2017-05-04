@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, b3log.org
+ * Copyright (c) 2014-2017, b3log.org & hacpai.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/*
+ * @file hotkeys.js
+ *
+ * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
+ * @author <a href="http://88250.b3log.org">Liang Ding</a>
+ * @version 1.0.0.2, Dec 15, 2015
+ */
 var hotkeys = {
     defaultKeyMap: {
         // Ctrl-0
@@ -36,13 +43,9 @@ var hotkeys = {
             which: 49,
             fun: function () {
                 // 有些元素需设置 tabindex 为 -1 时才可以 focus
-                if ($(".footer .ico-restore:eq(0)").css("display") === "inline") {
-                    // 当文件树最小化时
-                    $(".side").css({
-                        "left": "0"
-                    });
+                if (windows.outerLayout.west.state.isClosed) {
+                    windows.outerLayout.slideOpen('west');
                 }
-
                 $("#files").focus();
             }
         },
@@ -53,11 +56,8 @@ var hotkeys = {
             shiftKey: false,
             which: 50,
             fun: function () {
-                if ($(".footer .ico-restore:eq(2)").css("display") === "inline") {
-                    // 当文件树最小化时
-                    $(".side-right").css({
-                        "right": "0"
-                    });
+                if (windows.innerLayout.east.state.isClosed) {
+                    windows.innerLayout.slideOpen('east');
                 }
 
                 $("#outline").focus();
@@ -216,9 +216,9 @@ var hotkeys = {
             if (event.altKey === hotKeys.clearWindow.altKey
                     && event.which === hotKeys.clearWindow.which) {  // Alt-C clear output
                 bottomGroup.clear('output');
-                
+
                 event.preventDefault();
-                
+
                 return;
             }
         });
@@ -428,7 +428,7 @@ var hotkeys = {
                     var tabs = ["output", "search", "notification"],
                             nextPath = "";
                     for (var i = 0, ii = tabs.length; i < ii; i++) {
-                        if (document.activeElement.className === tabs[i]) {
+                        if (bottomGroup.tabs.getCurrentId() === tabs[i]) {
                             if (i < ii - 1) {
                                 nextPath = tabs[i + 1];
                             } else {
@@ -466,7 +466,7 @@ var hotkeys = {
                     editors.tabs.setCurrent(nextPath);
                     var nextTId = tree.getTIdByPath(nextPath);
                     wide.curNode = tree.fileTree.getNodeByTId(nextTId);
-                    
+
                     tree.fileTree.selectNode(wide.curNode);
                     wide.refreshOutline();
                     var cursor = wide.curEditor.getCursor();

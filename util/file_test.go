@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2015, b3log.org
+// Copyright (c) 2014-2017, b3log.org & hacpai.com
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 package util
 
 import (
+	"path/filepath"
 	"strconv"
 	"testing"
 )
@@ -52,6 +53,28 @@ func TestIsImg(t *testing.T) {
 func TestIsDir(t *testing.T) {
 	if !File.IsDir(".") {
 		t.Error(". should be a directory")
+
+		return
+	}
+}
+
+func TestCopyDir(t *testing.T) {
+	dest := filepath.Join(testDir, "util")
+
+	err := File.CopyDir(".", dest)
+	if nil != err {
+		t.Error("Copy dir error: ", err)
+
+		return
+	}
+}
+
+func TestCopyFile(t *testing.T) {
+	dest := filepath.Join(testDir, "file.go")
+
+	err := File.CopyFile("./file.go", dest)
+	if nil != err {
+		t.Error("Copy file error: ", err)
 
 		return
 	}

@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2015, b3log.org
+// Copyright (c) 2014-2017, b3log.org & hacpai.com
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,8 +38,8 @@ const (
 	// PathListSeparator holds the OS-specific path list separator.
 	PathListSeparator = string(os.PathListSeparator)
 
-	// WideVersion holds the current wide version.
-	WideVersion = "1.4.0"
+	// WideVersion holds the current Wide's version.
+	WideVersion = "1.5.2"
 	// CodeMirrorVer holds the current editor version.
 	CodeMirrorVer = "5.1"
 
@@ -69,6 +69,7 @@ type conf struct {
 	WD                    string // current working direcitory, ${pwd}
 	Locale                string // default locale
 	Playground            string // playground directory
+	UsersWorkspaces       string // users' workspaces directory (admin defaults to ${GOPATH}, others using this)
 	AllowRegister         bool   // allow register or not
 	Autocomplete          bool   // default autocomplete
 }
@@ -87,11 +88,11 @@ var Docker bool
 
 // Load loads the Wide configurations from wide.json and users' configurations from users/{username}.json.
 func Load(confPath, confIP, confPort, confServer, confLogLevel, confStaticServer, confContext, confChannel,
-	confPlayground string, confDocker bool) {
+	confPlayground string, confDocker bool, confUsersWorkspaces string) {
 	// XXX: ugly args list....
 
 	initWide(confPath, confIP, confPort, confServer, confLogLevel, confStaticServer, confContext, confChannel,
-		confPlayground, confDocker)
+		confPlayground, confDocker, confUsersWorkspaces)
 	initUsers()
 }
 
@@ -116,20 +117,35 @@ func initUsers() {
 			continue
 		}
 
+		if ".json" != filepath.Ext(name) { // such as backup (*.json~) not be created by Wide
+			continue
+		}
+
 		user := &User{}
 
 		bytes, _ := ioutil.ReadFile("conf/users/" + name)
 
 		err := json.Unmarshal(bytes, user)
 		if err != nil {
-			logger.Errorf("Parses [%s] error: %v", name, err)
+			logger.Errorf("Parses [%s] error: %v, skip loading this user", name, err)
 
-			os.Exit(-1)
+			continue
 		}
 
 		// Compatibility upgrade (1.3.0): https://github.com/b3log/wide/issues/83
 		if "" == user.Keymap {
 			user.Keymap = "wide"
+		}
+
+		// Compatibility upgrade (1.5.3): https://github.com/b3log/wide/issues/308
+		if "" == user.GoBuildArgsForLinux {
+			user.GoBuildArgsForLinux = "-i"
+		}
+		if "" == user.GoBuildArgsForWindows {
+			user.GoBuildArgsForWindows = "-i"
+		}
+		if "" == user.GoBuildArgsForDarwin {
+			user.GoBuildArgsForDarwin = "-i"
 		}
 
 		Users = append(Users, user)
@@ -140,7 +156,7 @@ func initUsers() {
 }
 
 func initWide(confPath, confIP, confPort, confServer, confLogLevel, confStaticServer, confContext, confChannel,
-	confPlayground string, confDocker bool) {
+	confPlayground string, confDocker bool, confUsersWorkspaces string) {
 	bytes, err := ioutil.ReadFile(confPath)
 	if nil != err {
 		logger.Error(err)
@@ -186,6 +202,14 @@ func initWide(confPath, confIP, confPort, confServer, confLogLevel, confStaticSe
 		Wide.Playground = confPlayground
 	}
 
+	// Users' workspaces Directory
+	Wide.UsersWorkspaces = strings.Replace(Wide.UsersWorkspaces, "${WD}", Wide.WD, 1)
+	Wide.UsersWorkspaces = strings.Replace(Wide.UsersWorkspaces, "${home}", home, 1)
+	if "" != confUsersWorkspaces {
+		Wide.UsersWorkspaces = confUsersWorkspaces
+	}
+	Wide.UsersWorkspaces = filepath.Clean(Wide.UsersWorkspaces)
+
 	if !util.File.IsExist(Wide.Playground) {
 		if err := os.Mkdir(Wide.Playground, 0775); nil != err {
 			logger.Errorf("Create Playground [%s] error", err)
@@ -195,25 +219,23 @@ func initWide(confPath, confIP, confPort, confServer, confLogLevel, confStaticSe
 	}
 
 	// IP
-	ip := ""
 	if "" != confIP {
-		ip = confIP
+		Wide.IP = confIP
 	} else {
-		ip, err = util.Net.LocalIP()
+		ip, err := util.Net.LocalIP()
 		if nil != err {
 			logger.Error(err)
 
 			os.Exit(-1)
 		}
-	}
 
-	Wide.IP = strings.Replace(Wide.IP, "${ip}", ip, 1)
+		logger.Debugf("${ip} [%s]", ip)
+		Wide.IP = strings.Replace(Wide.IP, "${ip}", ip, 1)
+	}
 
 	if "" != confPort {
 		Wide.Port = confPort
 	}
-
-	logger.Debugf("${ip} [%s]", ip)
 
 	// Docker flag
 	Docker = confDocker
@@ -237,7 +259,9 @@ func initWide(confPath, confIP, confPort, confServer, confLogLevel, confStaticSe
 		Wide.Context = confContext
 	}
 
-	Wide.StaticResourceVersion = strings.Replace(Wide.StaticResourceVersion, "${time}", strconv.FormatInt(time.Now().UnixNano(), 10), 1)
+	time := strconv.FormatInt(time.Now().UnixNano(), 10)
+	logger.Debugf("${time} [%s]", time)
+	Wide.StaticResourceVersion = strings.Replace(Wide.StaticResourceVersion, "${time}", time, 1)
 
 	// Channel
 	Wide.Channel = strings.Replace(Wide.Channel, "{IP}", Wide.IP, 1)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, b3log.org
+ * Copyright (c) 2014-2017, b3log.org & hacpai.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,20 @@
  * limitations under the License.
  */
 
+/*
+ * @file playground.js
+ *
+ * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
+ * @author <a href="http://88250.b3log.org">Liang Ding</a>
+ * @version 1.0.0.1, Dec 8, 2015
+ */
 var playground = {
     autocompleteMutex: false,
     editor: undefined,
     pid: undefined,
     _resize: function () {
-        if (config.disqus) {
-            return false;
-        }
-        if (config.embed) {
-            $("#editorDiv").parent().height($(window).height() - 33 - $(".footer").height());
-            playground.editor.setSize("auto", ($("#editorDiv").parent().height() * 0.7) + "px");
-        } else {
-            $("#editor, #output").height($(window).height() - 60 - $(".footer").height());
-            playground.editor.setSize("auto", $("#editor").height() + "px");
-        }
+        $('#goNews, #editorDivWrap').height($(window).height() - 40 - $(".footer").height());
+        playground.editor.setSize("auto", ($("#editorDiv").parent().height() * 0.7) + "px");
     },
     _initShare: function () {
         $("#dialogShare").dialog({
@@ -203,11 +202,8 @@ var playground = {
             playground._resize();
         });
 
-        if (config.embed) {
-            playground.editor.setSize("auto", ($("#editorDiv").parent().height() * 0.7) + "px");
-        } else {
-            playground.editor.setSize("auto", $("#editor").height() + "px");
-        }
+        playground.editor.setSize("auto", ($("#editorDiv").parent().height() * 0.7) + "px");
+        
 
         var hovered = false;
         $(".menu .ico-share").hover(function () {
@@ -273,6 +269,7 @@ var playground = {
         this._initWideShare();
         this._initShare();
         menu._initAbout();
+        this._initGoNews();
     },
     _initWS: function () {
         // Used for session retention, server will release all resources of the session if this channel closed
@@ -319,6 +316,35 @@ var playground = {
             console.log('[playground onerror] ' + JSON.parse(e));
         };
     },
+    _initGoNews: function () {
+        $.ajax({
+            url: "https://hacpai.com/apis/articles?tags=wide,golang&p=1&size=20",
+            type: "GET",
+            dataType: "jsonp",
+            jsonp: "callback",
+            success: function (data, textStatus) {
+                var articles = data.articles;
+                if (0 === articles.length) {
+                    return;
+                }
+
+                var length = articles.length;
+
+                var listHTML = "<ul><li class='title'>" + config.label.community +
+                    "<a href='https://hacpai.com/article/1437497122181' target='_blank' class='fn-right'>边看边练</li>";
+                for (var i = 0; i < length; i++) {
+                    var article = articles[i];
+                    listHTML += "<li>"
+                            + "<a target='_blank' href='"
+                            + article.articlePermalink + "'>"
+                            + article.articleTitle + "</a>"
+                    +"</span></li>";
+                }
+
+                $("#goNews").html(listHTML + "</ul>");
+            }
+        });
+    },
     share: function () {
         if (!playground.editor) {
             return;
@@ -334,10 +360,12 @@ var playground = {
             url: config.context + '/playground/save',
             data: JSON.stringify(request),
             dataType: "json",
-            success: function (data) {
+            success: function (result) {
+                var data = result.data;
+                
                 playground.editor.setValue(data.code);
 
-                if (!data.succ) {
+                if (!result.succ) {
                     console.log(data);
                     return;
                 }
@@ -351,9 +379,9 @@ var playground = {
                     url: config.context + '/playground/short-url',
                     data: JSON.stringify(request),
                     dataType: "json",
-                    success: function (data) {
-                        if (!data.succ) {
-                            console.log(data);
+                    success: function (result) {
+                        if (!result.succ) {
+                            console.log(result);
                             return;
                         }
 
@@ -361,11 +389,11 @@ var playground = {
                                 + config.label.colon + '</label><a href="'
                                 + url + '" target="_blank">' + url + "</a><br/>";
                         html += '<label>' + config.label.short_url + config.label.colon
-                                + '</label><a href="' + data.shortURL + '" target="_blank">'
-                                + data.shortURL + '</a><br/>';
+                                + '</label><a href="' + result.data + '" target="_blank">'
+                                + result.data + '</a><br/>';
                         html += '<label>' + config.label.embeded + config.label.colon
                                 + '</label><br/><textarea rows="5" style="width:100%" readonly><iframe style="border:1px solid" src="'
-                                + url + '?embed=true" width="99%" height="600"></iframe></textarea>';
+                                + url + '" width="99%" height="600"></iframe></textarea>';
                         html += '</div>';
 
                         $("#dialogShare").html(html);
@@ -373,21 +401,6 @@ var playground = {
                     }});
             }
         });
-    },
-    disqus: function () {
-        var url = window.location.href;
-        if (url.indexOf("?") >= 0) {
-            if (url.indexOf("disqus=") >= 0) {
-                url = url.replace("disqus=false", "disqus=true");
-                console.log(url);
-            } else {
-                url += "&disqus=true";
-            }
-        } else {
-            url += "?disqus=true";
-        }
-
-        window.location.href = url;
     },
     stop: function () {
         if (!playground.editor) {
@@ -434,12 +447,13 @@ var playground = {
             url: config.context + '/playground/save',
             data: JSON.stringify(request),
             dataType: "json",
-            success: function (data) {
-                // console.log(data);
+            success: function (result) {
+                var data = result.data;
+                
                 playground.editor.setValue(data.code);
                 playground.editor.setCursor(cursor);
 
-                if (!data.succ) {
+                if (!result.succ) {
                     return;
                 }
 
@@ -452,12 +466,14 @@ var playground = {
                     url: config.context + '/playground/build',
                     data: JSON.stringify(request),
                     dataType: "json",
-                    success: function (data) {
-                        // console.log(data);
+                    success: function (result) {
+                        console.log(result);
+                        
+                        var data = result.data;
 
                         $("#output").val(data.output);
 
-                        if (!data.succ) {
+                        if (!result.succ) {
                             return;
                         }
 
@@ -470,7 +486,7 @@ var playground = {
                             url: config.context + '/playground/run',
                             data: JSON.stringify(request),
                             dataType: "json",
-                            success: function (data) {
+                            success: function (result) {
                                 // console.log(data);
                             }
                         });
@@ -497,8 +513,8 @@ var playground = {
             url: config.context + '/playground/save',
             data: JSON.stringify(request),
             dataType: "json",
-            success: function (data) {
-                playground.editor.setValue(data.code);
+            success: function (result) {
+                playground.editor.setValue(result.data.code);
                 playground.editor.setCursor(cursor);
             }
         });

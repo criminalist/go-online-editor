@@ -70,6 +70,18 @@
                     {{end}}
                 </select>
             </label>
+            <label>
+                Go Build Args Linux{{.i18n.colon}}
+                <input data-value="{{.user.GoBuildArgsForLinux}}" value="{{.user.GoBuildArgsForLinux}}" name="GoBuildArgsForLinux"/>
+            </label>
+			<label>
+                Go Build Args Windows{{.i18n.colon}}
+                <input data-value="{{.user.GoBuildArgsForWindows}}" value="{{.user.GoBuildArgsForWindows}}" name="GoBuildArgsForWindows"/>
+            </label>
+			<label>
+                Go Build Args Darwin{{.i18n.colon}}
+                <input data-value="{{.user.GoBuildArgsForDarwin}}" value="{{.user.GoBuildArgsForDarwin}}" name="GoBuildArgsForDarwin"/>
+            </label>
         </div>
         <div class="fn-none" data-index="keymap">
             <label>
@@ -103,8 +115,8 @@
                 <input data-value="{{.user.Password}}" value="{{.user.Password}}" name="password" type="password"/>
             </label>
             <label class="fn-clear">
-                <img onerror="this.src='/static/images/user-thumbnail.png'"
-                     src="https://secure.gravatar.com/avatar/{{.user.Gravatar}}?s=48&d=https://symphony.b3log.org/images/user-thumbnail.png" 
+                <img onerror="this.src='{{.conf.StaticServer}}/static/images/user-thumbnail.png'"
+                     src="https://secure.gravatar.com/avatar/{{.user.Gravatar}}?s=48&d=https://hacpai.com/images/user-thumbnail.png" 
                      title="{{.user.Name}}" class='gravatar'/>
                 <a href="http://gravatar.com/" target="_blank">{{.i18n.change_avatar}} Gravatar.com</a>
             </label>

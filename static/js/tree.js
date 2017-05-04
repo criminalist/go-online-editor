@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, b3log.org
+ * Copyright (c) 2014-2017, b3log.org & hacpai.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/*
+ * @file tree.js
+ *
+ * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
+ * @author <a href="http://88250.b3log.org">Liang Ding</a>
+ * @version 1.0.1.1, Dec 15, 2015
+ */
 var tree = {
     fileTree: undefined,
     // 递归获取当前节点展开中的最后一个节点
@@ -156,9 +163,9 @@ var tree = {
             url: config.context + '/file/zip/new',
             data: JSON.stringify(request),
             dataType: "json",
-            success: function (data) {
-                if (!data.succ) {
-                    $("#dialogAlert").dialog("open", data.msg);
+            success: function (result) {
+                if (!result.succ) {
+                    $("#dialogAlert").dialog("open", result.msg);
 
                     return false;
                 }
@@ -182,9 +189,9 @@ var tree = {
             url: config.context + '/cross',
             data: JSON.stringify(request),
             dataType: "json",
-            success: function (data) {
-                if (!data.succ) {
-                    $("#dialogAlert").dialog("open", data.msg);
+            success: function (result) {
+                if (!result.succ) {
+                    $("#dialogAlert").dialog("open", result.msg);
 
                     return false;
                 }
@@ -201,9 +208,9 @@ var tree = {
             url: config.context + '/file/decompress',
             data: JSON.stringify(request),
             dataType: "json",
-            success: function (data) {
-                if (!data.succ) {
-                    $("#dialogAlert").dialog("open", data.msg);
+            success: function (result) {
+                if (!result.succ) {
+                    $("#dialogAlert").dialog("open", result.msg);
 
                     return false;
                 }
@@ -239,7 +246,7 @@ var tree = {
             url: "/file/upload?path=" + request.path,
             dataType: 'json',
             formData: request,
-            done: function (e, data) {
+            done: function (e, result) {
                 tree.fileTree.reAsyncChildNodes(wide.curNode, "refresh");
             },
             fail: function () {
@@ -259,8 +266,8 @@ var tree = {
             url: config.context + '/files',
             data: JSON.stringify(request),
             dataType: "json",
-            success: function (data) {
-                if (data.succ) {
+            success: function (result) {
+                if (result.succ) {
                     var $dirRMenu = $("#dirRMenu");
                     var $fileRMenu = $("#fileRMenu");
                     var setting = {
@@ -367,7 +374,7 @@ var tree = {
                             }
                         }
                     };
-                    tree.fileTree = $.fn.zTree.init($("#files"), setting, data.root.children);
+                    tree.fileTree = $.fn.zTree.init($("#files"), setting, result.data.children);
 
                     session.restore();
                 }
@@ -413,16 +420,22 @@ var tree = {
                 url: config.context + '/file',
                 data: JSON.stringify(request),
                 dataType: "json",
-                success: function (data) {
-                    if (!data.succ) {
-                        $("#dialogAlert").dialog("open", data.msg);
+                success: function (result) {
+                    if (!result.succ) {
+                        $("#dialogAlert").dialog("open", result.msg);
 
                         return false;
                     }
 
+                    var data = result.data;
+
                     if (!data.mode) {
                         var mode = CodeMirror.findModeByFileName(treeNode.path);
-                        data.mode = mode.mime;
+                        if (mode) {
+                            data.mode = mode.mime;
+                        } else {
+                            data.mode = 'text/plain';
+                        }
                     }
 
                     if (!data.mode) {
@@ -496,13 +509,13 @@ var tree = {
                     url: config.context + '/file/search/text',
                     data: JSON.stringify(request),
                     dataType: "json",
-                    success: function (data) {
-                        if (!data.succ) {
+                    success: function (result) {
+                        if (!result.succ) {
                             return;
                         }
 
                         $("#dialogSearchForm").dialog("close");
-                        editors.appendSearch(data.founds, 'founds', request.text);
+                        editors.appendSearch(result.data, 'founds', request.text);
                     }
                 });
             }
@@ -525,15 +538,15 @@ var tree = {
                         request = newWideRequest();
 
                 request.oldPath = wide.curNode.path;
-                request.newPath = wide.curNode.path.substring(0, wide.curNode.path.lastIndexOf("/") +1) + name;
+                request.newPath = wide.curNode.path.substring(0, wide.curNode.path.lastIndexOf("/") + 1) + name;
 
                 $.ajax({
                     type: 'POST',
                     url: config.context + '/file/rename',
                     data: JSON.stringify(request),
                     dataType: "json",
-                    success: function (data) {
-                        if (!data.succ) {
+                    success: function (result) {
+                        if (!result.succ) {
                             $("#dialogRenamePrompt").dialog("close");
                             bottomGroup.tabs.setCurrent("notification");
                             windows.flowBottom();

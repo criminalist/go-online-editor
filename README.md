@@ -1,17 +1,23 @@
-# Wide [![Build Status](https://img.shields.io/travis/b3log/wide.svg?style=flat)](https://travis-ci.org/b3log/wide) [![Coverage Status](https://img.shields.io/coveralls/b3log/wide.svg?style=flat)](https://coveralls.io/r/b3log/wide) [![Apache License](http://img.shields.io/badge/license-apache2-orange.svg?style=flat)](http://www.apache.org/licenses/LICENSE-2.0) [![API Documentation](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](http://godoc.org/github.com/b3log/wide) [![Download](http://img.shields.io/badge/download-~2.7K-red.svg?style=flat)](http://pan.baidu.com/s/1dD3XwOT)
+# [Wide](https://github.com/b3log/wide) [![Build Status](https://img.shields.io/travis/b3log/wide.svg?style=flat)](https://travis-ci.org/b3log/wide) [![Coverage Status](https://img.shields.io/coveralls/b3log/wide.svg?style=flat)](https://coveralls.io/r/b3log/wide) [![Apache License](http://img.shields.io/badge/license-apache2-orange.svg?style=flat)](http://www.apache.org/licenses/LICENSE-2.0) [![API Documentation](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](http://godoc.org/github.com/b3log/wide) [![Download](http://img.shields.io/badge/download-~4.3K-red.svg?style=flat)](http://pan.baidu.com/s/1dD3XwOT)
 
 _Have a [try](http://wide.b3log.org/signup) first, then [download](http://pan.baidu.com/s/1dD3XwOT) and setup it on your local area network, enjoy yourself!_
 
 先试试我们搭建好的[在线服务](http://wide.b3log.org/signup)，你可以在这里[下载](http://pan.baidu.com/s/1dD3XwOT)并在本地环境运行，然后邀请小伙伴们来玩吧！
 
 > * 关于 Wide 的产品定位，请看[这里](http://hacpai.com/article/1438407961481)，并欢迎参与讨论~
-> * 加入[**黑客派**](http://hacpai.com/register?r=Vanessa)，与其他程序员、设计师共同成长！
+> * 加入[**黑客派**](http://hacpai.com/register)，与其他程序员、设计师共同成长！
 
 ## Introduction
 
 A <b>W</b>eb-based <b>IDE</b> for Teams using Go programming language/Golang.
 
 ![Hello, 世界](https://cloud.githubusercontent.com/assets/873584/4606377/d0ca3c2a-521b-11e4-912c-d955ab05850b.png)
+
+## Authors
+
+[Daniel](https://github.com/88250) and [Vanessa](https://github.com/Vanessa219) are the main authors of Wide, [here](https://github.com/b3log/wide/graphs/contributors) are all contributors.
+
+Wide 的主要作者是 [Daniel](https://github.com/88250) 与 [Vanessa](https://github.com/Vanessa219)，所有贡献者可以在[这里](https://github.com/b3log/wide/graphs/contributors)看到。
 
 ## Motivation
 
@@ -78,6 +84,9 @@ A <b>W</b>eb-based <b>IDE</b> for Teams using Go programming language/Golang.
   
   ![Cross-Compilation](https://cloud.githubusercontent.com/assets/873584/10130037/226d75fc-65f7-11e5-94e4-25ee579ca175.png)
 
+* **Playground**
+  ![Playground](https://cloud.githubusercontent.com/assets/873584/21209772/449ecfd2-c2b1-11e6-9aa6-a83477d9f269.gif)
+  
 ## Architecture 
 
 ### Build & Run

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, b3log.org
+ * Copyright (c) 2014-2017, b3log.org & hacpai.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/*
+ * @file menu.js
+ *
+ * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
+ * @author <a href="http://88250.b3log.org">Liang Ding</a>
+ * @version 1.0.1.2, Mar 27, 2017
+ */
 var menu = {
     init: function () {
         this.subMenu();
@@ -156,9 +163,9 @@ var menu = {
             url: config.context + '/logout',
             data: JSON.stringify(request),
             dataType: "json",
-            success: function (data) {
-                if (data.succ) {
-                    window.location.href = "/login";
+            success: function (result) {
+                if (result.succ) {
+                    window.location.href = config.context + "/login";
                 }
             }
         });
@@ -186,10 +193,10 @@ var menu = {
             url: config.context + '/go/get',
             data: JSON.stringify(request),
             dataType: "json",
-            beforeSend: function (data) {
+            beforeSend: function () {
                 bottomGroup.resetOutput();
             },
-            success: function (data) {
+            success: function (result) {
             }
         });
     },
@@ -213,10 +220,10 @@ var menu = {
             url: config.context + '/go/install',
             data: JSON.stringify(request),
             dataType: "json",
-            beforeSend: function (data) {
+            beforeSend: function () {
                 bottomGroup.resetOutput();
             },
-            success: function (data) {
+            success: function (result) {
             }
         });
     },
@@ -241,10 +248,10 @@ var menu = {
             url: config.context + '/go/test',
             data: JSON.stringify(request),
             dataType: "json",
-            beforeSend: function (data) {
+            beforeSend: function () {
                 bottomGroup.resetOutput();
             },
-            success: function (data) {
+            success: function (result) {
             }
         });
     },
@@ -269,10 +276,10 @@ var menu = {
             url: config.context + '/go/vet',
             data: JSON.stringify(request),
             dataType: "json",
-            beforeSend: function (data) {
+            beforeSend: function () {
                 bottomGroup.resetOutput();
             },
-            success: function (data) {
+            success: function (result) {
             }
         });
     },
@@ -304,12 +311,13 @@ var menu = {
             url: config.context + '/build',
             data: JSON.stringify(request),
             dataType: "json",
-            beforeSend: function (data) {
+            beforeSend: function () {
                 bottomGroup.resetOutput();
-            },
-            success: function (data) {
+
                 $("#buildRun").addClass("ico-stop")
                         .removeClass("ico-buildrun").attr("title", config.label.stop);
+            },
+            success: function (result) {
             }
         });
     },
@@ -336,10 +344,10 @@ var menu = {
             url: config.context + '/build',
             data: JSON.stringify(request),
             dataType: "json",
-            beforeSend: function (data) {
+            beforeSend: function () {
                 bottomGroup.resetOutput();
             },
-            success: function (data) {
+            success: function (result) {
             }
         });
     },
@@ -417,6 +425,9 @@ var menu = {
                             $fontFamily = $dialogPreference.find("input[name=fontFamily]"),
                             $fontSize = $dialogPreference.find("input[name=fontSize]"),
                             $goFmt = $dialogPreference.find("select[name=goFmt]"),
+                            $GoBuildArgsForLinux = $dialogPreference.find("input[name=GoBuildArgsForLinux]"),
+                            $GoBuildArgsForWindows = $dialogPreference.find("input[name=GoBuildArgsForWindows]"),
+                            $GoBuildArgsForDarwin = $dialogPreference.find("input[name=GoBuildArgsForDarwin]"),
                             $workspace = $dialogPreference.find("input[name=workspace]"),
                             $password = $dialogPreference.find("input[name=password]"),
                             $email = $dialogPreference.find("input[name=email]"),
@@ -433,6 +444,9 @@ var menu = {
                         "fontFamily": $fontFamily.val(),
                         "fontSize": $fontSize.val(),
                         "goFmt": $goFmt.val(),
+                        "GoBuildArgsForLinux": $GoBuildArgsForLinux.val(),
+                        "GoBuildArgsForWindows": $GoBuildArgsForWindows.val(),
+                        "GoBuildArgsForDarwin": $GoBuildArgsForDarwin.val(),
                         "workspace": $workspace.val(),
                         "password": $password.val(),
                         "email": $email.val(),
@@ -445,7 +459,7 @@ var menu = {
                         "editorTabSize": $editorTabSize.val(),
                         "keymap": $keymap.val()
                     });
-                    
+
                     if (config.keymap !== $keymap.val()) {
                         window.location.reload();
                     }
@@ -454,14 +468,17 @@ var menu = {
                         type: 'POST',
                         url: config.context + '/preference',
                         data: JSON.stringify(request),
-                        success: function (data, textStatus, jqXHR) {
-                            if (!data.succ) {
+                        success: function (result, textStatus, jqXHR) {
+                            if (!result.succ) {
                                 return false;
                             }
 
                             $fontFamily.data("value", $fontFamily.val());
                             $fontSize.data("value", $fontSize.val());
                             $goFmt.data("value", $goFmt.val());
+                            $GoBuildArgsForLinux.data("value", $GoBuildArgsForLinux.val());
+                            $GoBuildArgsForWindows.data("value", $GoBuildArgsForWindows.val());
+                            $GoBuildArgsForDarwin.data("value", $GoBuildArgsForDarwin.val());
                             $workspace.data("value", $workspace.val());
                             $password.data("value", $password.val());
                             $email.data("value", $email.val());
@@ -473,7 +490,7 @@ var menu = {
                             $editorTheme.data("value", $editorTheme.val());
                             $editorTabSize.data("value", $editorTabSize.val());
                             $keymap.data("value", $keymap.val());
-                            
+
                             // update the config
                             config.keymap = $keymap.val();
 

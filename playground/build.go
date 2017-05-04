@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2015, b3log.org
+// Copyright (c) 2014-2017, b3log.org & hacpai.com
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,8 +29,8 @@ import (
 
 // BuildHandler handles request of Playground building.
 func BuildHandler(w http.ResponseWriter, r *http.Request) {
-	data := map[string]interface{}{"succ": true}
-	defer util.RetJSON(w, r, data)
+	result := util.NewResult()
+	defer util.RetResult(w, r, result)
 
 	httpSession, _ := session.HTTPSession.Get(r, "wide-session")
 	if httpSession.IsNew {
@@ -42,7 +42,7 @@ func BuildHandler(w http.ResponseWriter, r *http.Request) {
 	var args map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
 		logger.Error(err)
-		data["succ"] = false
+		result.Succ = false
 
 		return
 	}
@@ -55,15 +55,18 @@ func BuildHandler(w http.ResponseWriter, r *http.Request) {
 		suffix = ".exe"
 	}
 
+	data := map[string]interface{}{}
+	result.Data = &data
+
 	executable := filepath.Clean(conf.Wide.Playground + "/" + strings.Replace(fileName, ".go", suffix, -1))
 
 	cmd := exec.Command("go", "build", "-o", executable, filePath)
-
 	out, err := cmd.CombinedOutput()
+
 	data["output"] = template.HTML(string(out))
 
 	if nil != err {
-		data["succ"] = false
+		result.Succ = false
 
 		return
 	}

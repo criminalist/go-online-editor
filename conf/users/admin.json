@@ -7,13 +7,16 @@
     "Workspace": "${GOPATH}",
     "Locale": "en_US",
     "GoFormat": "gofmt",
+    "GoBuildArgsForLinux": "-i",
+    "GoBuildArgsForWindows": "-i",
+    "GoBuildArgsForDarwin": "-i",
     "FontFamily": "Helvetica",
     "FontSize": "13px",
     "Theme": "default",
     "Keymap": "wide",
     "Created": 1414080000000000000,
-    "Updated": 1414080000000000000,
-    "Lived": 1414080000000000000,
+    "Updated": 1492963306222604966,
+    "Lived": 1492963306222604966,
     "Editor": {
         "FontFamily": "Consolas, 'Courier New', monospace",
         "FontSize": "13px",
@@ -22,12 +25,31 @@
         "TabSize": "4"
     },
     "LatestSessionContent": {
-        "FileTree": [],
-        "Files": [],
-        "CurrentFile": "",
-        "FileTreeLayout": null,
-        "EditorLayout": null,
-        "OutlineLayout": null,
-        "BottomLayout": null
+        "fileTree": [
+            "/Users/Vanessa/Work/Code/GoGoGo/src",
+            "/Users/Vanessa/Work/Code/GoGoGo/src/github.com",
+            "/Users/Vanessa/Work/Code/GoGoGo/src/github.com/b3log",
+            "/Users/Vanessa/Work/Code/GoGoGo/src/github.com/b3log/wide",
+            "/Users/Vanessa/Work/Code/GoGoGo/src/github.com/b3log/wide/.idea",
+            "/Users/Vanessa/Work/Code/GoGoGo/src/github.com/b3log/wide/static",
+            "/Users/Vanessa/Work/Code/GoGoGo/src/github.com/b3log/wide/static/css",
+            "/Users/Vanessa/Work/Code/GoGoGo/src/github.com/b3log/wide/static/js"
+        ],
+        "files": [],
+        "currentFile": "",
+        "layout": {
+            "side": {
+                "state": "normal",
+                "size": 200
+            },
+            "sideRight": {
+                "state": "normal",
+                "size": 200
+            },
+            "bottom": {
+                "state": "normal",
+                "size": 100
+            }
+        }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, b3log.org
+ * Copyright (c) 2014-2017, b3log.org & hacpai.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/*
+ * @file bottomGroup.js
+ *
+ * @author <a href="http://vanessa.b3log.org">Liyuan Li</a>
+ * @author <a href="http://88250.b3log.org">Liang Ding</a>
+ * @version 1.1.1.1, Mar 15, 2017
+ */
 var bottomGroup = {
     tabs: undefined,
     searchTab: undefined,
@@ -75,6 +82,7 @@ var bottomGroup = {
     fillOutput: function (data) {
         var $output = $('.bottom-window-group .output');
 
+        data = data.replace(/\r/g, '');
         data = data.replace(/\n/g, '<br/>');
 
         if (-1 !== data.indexOf("<br/>")) {
